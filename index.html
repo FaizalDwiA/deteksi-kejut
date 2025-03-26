@@ -123,7 +123,7 @@
         <div id="name-display" class="alert alert-info">Mohon Tunggu Sebentar, Sedang Dipersiapkan!</div>
 
         <div id="camera" class="position-relative d-inline-block">
-            <audio id="soundEffect" src="assets/sound-effect/scary-glicthy-jumscare.mp3"></audio>
+            <audio id="soundEffect" src="assets/sound-effect/jumscare.mp3"></audio>
 
             <div id="video-gambar" class="position-relative">
                 <div id="loading-container">
@@ -282,16 +282,14 @@
                             const isBlinkDetected = await detectBlink(results);
                             if (isBlinkDetected && !blinkSuccess) {
                                 blinkSuccess = true;
-                                setTimeout(() => {
-                                    document.getElementById('soundEffect').play();
-                                    let videoGambar = document.getElementById('video-gambar');
-                                    videoGambar.innerHTML = `<img src="assets/img/ghost.webp" id="scary-image" style="width: 20rem; opacity: 0;">`;
+                                document.getElementById('soundEffect').play();
+                                let videoGambar = document.getElementById('video-gambar');
+                                videoGambar.innerHTML = `<img src="assets/img/ghost.webp" id="scary-image" style="width: 20rem; opacity: 0;">`;
 
-                                    // Tambahkan delay kecil sebelum efek zoom agar lebih dramatis
-                                    setTimeout(() => {
-                                        document.getElementById('scary-image').classList.add('zoom-effect');
-                                    }, 100);
-                                }, 50);
+                                // Tambahkan delay kecil sebelum efek zoom agar lebih dramatis
+                                setTimeout(() => {
+                                    document.getElementById('scary-image').classList.add('zoom-effect');
+                                }, 300);
                             } else {
                                 requestAnimationFrame(processFrame);
                             }
