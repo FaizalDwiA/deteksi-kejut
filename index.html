@@ -267,16 +267,16 @@
                             if (isBlinkDetected && !blinkSuccess) {
                                 blinkSuccess = true;
                                 setTimeout(() => {
+                                    document.getElementById('soundEffect').play();
                                     document.getElementById('video-gambar').innerHTML = `<img src="assets/img/ghost.webp" style="width: 20rem;">`;
 
                                     // Mainkan efek suara
-                                    document.getElementById('soundEffect').play();
 
                                     // video.pause();
                                     // loadingProsesGambar.style.display = 'block';
                                     // pesan(false, '🌟 Kedipan Terdeteksi!', 'success');
                                     // resolve(true);
-                                }, 500);
+                                }, 50);
                             } else {
                                 requestAnimationFrame(processFrame);
                             }
