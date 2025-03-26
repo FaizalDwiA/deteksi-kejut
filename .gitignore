@@ -1,0 +1,17 @@
+# 🔒 Abaikan file sertifikat SSL (jangan commit ke Git!)
+key.pem
+cert.pem
+
+# 🐍 Abaikan file Python cache & virtual environment
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+venv/
+.env
+
+# 📂 Abaikan log dan file sementara
+logs/
+*.log
+.DS_Store
+Thumbs.db

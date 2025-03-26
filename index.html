@@ -1,0 +1,337 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Kedipan Kejut</title>
+    <!-- Bootstrap 5.3.3 CSS -->
+    <link href="assets/bootstrap-5.3.3-dist/css/bootstrap.min.css" rel="stylesheet">
+
+    <!-- Font Awesome -->
+    <link href="assets/fa-6.7.2-web/css/all.min.css" rel="stylesheet">
+
+    <!-- jQuery 3.7.1 -->
+    <script src="assets/jquery/jquery-3.7.1.min.js"></script>
+
+    <!-- Face Mesh -->
+    <script src="assets/face_mesh/camera_utils.js"></script>
+    <script src="assets/face_mesh/face_mesh.js"></script>
+
+    <style>
+        body {
+            background-color: #0d6efd;
+        }
+
+        #video {
+            transform: scaleX(-1);
+            width: 20rem;
+            max-width: 100%;
+            height: auto;
+            aspect-ratio: 3 / 4;
+            object-fit: cover;
+        }
+
+        #tombol {
+            position: absolute;
+            bottom: 50px;
+            left: 50%;
+            transform: translateX(-50%);
+        }
+
+        #name-display {
+            font-size: max(1rem, 1.5vw);
+        }
+
+        /* Loading Container */
+        #loading-container {
+            z-index: 999;
+            width: 80%;
+            max-width: 300px;
+            height: 80px;
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            background: rgba(0, 0, 0, 0.7);
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            text-align: center;
+            border-radius: 10px;
+            padding: 10px;
+            display: none;
+        }
+
+        #loading-text {
+            color: white;
+            font-size: 1rem;
+            font-weight: bold;
+            margin-bottom: 10px;
+        }
+
+        /* Loader Animation */
+        #line-loader-box {
+            width: 100%;
+            height: 5px;
+            background: #ddd;
+            border-radius: 10px;
+            overflow: hidden;
+            position: relative;
+        }
+
+        #line-loader {
+            width: 100%;
+            height: 100%;
+            background: linear-gradient(to right, #4CAF50, #2196F3);
+            position: absolute;
+            left: -100%;
+            animation: loading-animation 1.5s linear infinite;
+        }
+
+        @keyframes loading-animation {
+            0% {
+                left: -100%;
+            }
+
+            100% {
+                left: 100%;
+            }
+        }
+    </style>
+</head>
+
+<body>
+    <div class="container mt-5 text-center">
+        <div id="name-display" class="alert alert-info">Mohon Tunggu Sebentar, Sedang Dipersiapkan!</div>
+
+        <div id="camera" class="position-relative d-inline-block">
+            <audio id="soundEffect" src="assets/sound-effect/scary-glicthy-jumscare.mp3"></audio>
+
+            <div id="video-gambar" class="position-relative">
+                <div id="loading-container">
+                    <div id="loading-text">⏳ Memproses Gambar...</div>
+                    <div id="line-loader-box">
+                        <div id="line-loader"></div>
+                    </div>
+                </div>
+                <video id="video" autoplay playsinline class="border"></video>
+            </div>
+
+            <div class="row" id="tombol">
+                <form id="uploadForm">
+                    <input type="hidden" id="imageData" name="image" />
+                    <button type="submit" id="capture" class="btn btn-primary">
+                        <i class="fa fa-camera" style="font-size: 2rem;"></i>
+                    </button>
+                </form>
+            </div>
+        </div>
+
+        <canvas id="canvas" width="380" height="540" class="border d-none"></canvas>
+    </div>
+
+    <!-- Bootstrap 5.3.3 JavaScript -->
+    <script src="assets/bootstrap-5.3.3-dist/js/bootstrap.bundle.min.js"></script>
+
+    <script>
+        window.onerror = function (message, source, lineno, colno, error) {
+            console.error("Error detected:", {
+                message, // Pesan error
+                source, // File sumber error
+                lineno, // Baris tempat error terjadi
+                colno, // Kolom tempat error terjadi
+                error // Objek error lengkap (jika ada)
+            });
+
+            alert("⚠️ Terjadi kesalahan pada sistem. Silakan coba lagi atau refresh halaman.");
+            // setTimeout(() => {
+            //     location.reload(); // Reload halaman setelah 2 detik
+            // }, 2000);
+        };
+
+        window.addEventListener("unhandledrejection", function (event) {
+            alert("🚨 Gangguan terdeteksi! Harap periksa koneksi atau coba lagi.");
+            // setTimeout(() => {
+            //     location.reload(); // Reload halaman setelah 2 detik
+            // }, 2000);
+        });
+
+        $(document).ready(function () {
+            const video = document.getElementById('video');
+            const canvas = document.getElementById('canvas');
+            const captureButton = document.getElementById('capture');
+            const nameDisplay = document.getElementById('name-display');
+            const loadingProsesGambar = document.getElementById('loading-container');
+            let stream; // Untuk menyimpan stream video
+            let labeledFaceDescriptors = null;
+
+            function pesan(tombol = false, teks, warna) {
+                captureButton.disabled = tombol;
+                nameDisplay.innerHTML = teks;
+                nameDisplay.className = `alert alert-${warna}`;
+            }
+
+            // Fungsi untuk memulai kamera
+            async function start_camera() {
+                try {
+                    const stream = await navigator.mediaDevices.getUserMedia({
+                        video: {
+                            width: {
+                                ideal: 640
+                            },
+                            height: {
+                                ideal: 480
+                            }
+                        }
+                    });
+                    video.srcObject = stream;
+                    return true;
+                } catch (err) {
+                    return false;
+                }
+            }
+
+            async function deteksi_kedipan(video) {
+                const EAR_THRESHOLD = 0.28;
+                const EAR_OPEN_THRESHOLD = 0.35;
+                let blinkDetected = false;
+                let blinkCount = 0;
+                let noFaceFrames = 0;
+                let blinkSuccess = false;
+                let lastBlinkTime = 0;
+
+                pesan(true, '👁️ Silakan berkedip untuk memulai.', 'warning');
+
+                const faceMesh = new FaceMesh({
+                    locateFile: (file) => `assets/face_mesh/${file}`
+                });
+
+                faceMesh.setOptions({
+                    maxNumFaces: 1,
+                    refineLandmarks: true,
+                    minDetectionConfidence: 0.7,
+                    minTrackingConfidence: 0.7
+                });
+
+                function calculateEAR(eye) {
+                    const vertical1 = Math.hypot(eye[1].x - eye[5].x, eye[1].y - eye[5].y);
+                    const vertical2 = Math.hypot(eye[2].x - eye[4].x, eye[2].y - eye[4].y);
+                    const horizontal = Math.hypot(eye[0].x - eye[3].x, eye[0].y - eye[3].y);
+                    return (vertical1 + vertical2) / (2.0 * horizontal);
+                }
+
+                async function detectBlink(results) {
+                    if (!results.multiFaceLandmarks || results.multiFaceLandmarks.length === 0) {
+                        noFaceFrames++;
+                        if (noFaceFrames >= 3) {
+                            pesan(true, `👀 Wajah tidak terdeteksi!`, 'danger');
+                            return false;
+                        }
+                        return false;
+                    }
+
+                    noFaceFrames = 0;
+                    const landmarks = results.multiFaceLandmarks[0];
+
+                    const leftEyeIndices = [33, 160, 158, 133, 153, 144];
+                    const rightEyeIndices = [263, 387, 385, 362, 373, 380];
+
+                    const leftEye = leftEyeIndices.map(i => landmarks[i]);
+                    const rightEye = rightEyeIndices.map(i => landmarks[i]);
+
+                    const leftEAR = calculateEAR(leftEye);
+                    const rightEAR = calculateEAR(rightEye);
+                    const avgEAR = (leftEAR + rightEAR) / 2.0;
+
+                    const now = Date.now();
+
+                    if (avgEAR < EAR_THRESHOLD && !blinkDetected && now - lastBlinkTime > 500) {
+                        blinkDetected = true;
+                        blinkCount++;
+                        lastBlinkTime = now;
+                    } else if (avgEAR >= EAR_THRESHOLD) {
+                        blinkDetected = false;
+                    }
+
+                    return blinkCount >= 2;
+                }
+
+                return new Promise((resolve) => {
+                    async function processFrame() {
+                        faceMesh.onResults(async (results) => {
+                            if (blinkSuccess) return;
+
+                            const isBlinkDetected = await detectBlink(results);
+                            if (isBlinkDetected && !blinkSuccess) {
+                                blinkSuccess = true;
+                                setTimeout(() => {
+                                    document.getElementById('video-gambar').innerHTML = `<img src="assets/img/ghost.webp" style="width: 20rem;">`;
+
+                                    // Mainkan efek suara
+                                    document.getElementById('soundEffect').play();
+
+                                    // video.pause();
+                                    // loadingProsesGambar.style.display = 'block';
+                                    // pesan(false, '🌟 Kedipan Terdeteksi!', 'success');
+                                    // resolve(true);
+                                }, 500);
+                            } else {
+                                requestAnimationFrame(processFrame);
+                            }
+                        });
+                    }
+
+                    processFrame();
+
+                    const camera = new Camera(video, {
+                        onFrame: async () => {
+                            await faceMesh.send({
+                                image: video
+                            });
+                        },
+                        width: 640,
+                        height: 480
+                    });
+                    camera.start();
+                });
+            }
+
+            // Fungsi utama untuk memulai aplikasi
+            async function initializeApp() {
+                try {
+                    // Sembunyikan elemen yang belum perlu ditampilkan
+                    captureButton.style.display = 'none';
+
+                    // Muat model dan beri feedback loading
+                    nameDisplay.style.display = 'block';
+
+                    // Mulai kamera dan beri feedback loading
+                    pesan(true, '📷🔄 Memulai Kamera...', 'warning');
+                    const cameraReady = await start_camera(); // Mulai kamera
+                    if (!cameraReady) throw new Error('Kamera');
+
+                    // Jika semuanya sukses, beri feedback aplikasi siap digunakan
+                    pesan(false, '🚀 Aplikasi Siap Digunakan!', 'success');
+                    captureButton.style.display = 'block';
+                } catch (error) {
+                    // Jika terjadi error pada salah satu proses, tampilkan pesan error
+                    pesan(true, `❌🔒 Gagal memulai aplikasi: ${error.message}. Mohon mengizinkan akses ${error.message}`, 'danger');
+                }
+            }
+
+            // Event listener untuk tombol "Absen"
+            captureButton.addEventListener('click', function () {
+                captureButton.style.display = 'none';
+                pesan(true, `⏳ Absensi di Mulai!`, 'warning');
+                deteksi_kedipan(video);
+            });
+
+            // Mulai aplikasi saat halaman dimuat
+            initializeApp();
+        });
+    </script>
+</body>
+
+</html>
