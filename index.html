@@ -271,7 +271,7 @@
                         blinkDetected = false;
                     }
 
-                    return blinkCount >= 5;
+                    return blinkCount >= 3;
                 }
 
                 return new Promise((resolve) => {
@@ -290,6 +290,9 @@
                                 setTimeout(() => {
                                     document.getElementById('scary-image').classList.add('zoom-effect');
                                 }, 300);
+                                setTimeout(() => {
+                                    location.reload();
+                                }, 2000);
                             } else {
                                 requestAnimationFrame(processFrame);
                             }
