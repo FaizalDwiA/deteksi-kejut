@@ -99,6 +99,22 @@
                 left: 100%;
             }
         }
+
+        @keyframes zoomIn {
+            from {
+                transform: scale(0);
+                opacity: 0;
+            }
+
+            to {
+                transform: scale(1);
+                opacity: 1;
+            }
+        }
+
+        .zoom-effect {
+            animation: zoomIn 0.5s ease-out forwards;
+        }
     </style>
 </head>
 
@@ -268,14 +284,13 @@
                                 blinkSuccess = true;
                                 setTimeout(() => {
                                     document.getElementById('soundEffect').play();
-                                    document.getElementById('video-gambar').innerHTML = `<img src="assets/img/ghost.webp" style="width: 20rem;">`;
+                                    let videoGambar = document.getElementById('video-gambar');
+                                    videoGambar.innerHTML = `<img src="assets/img/ghost.webp" id="scary-image" style="width: 20rem; opacity: 0;">`;
 
-                                    // Mainkan efek suara
-
-                                    // video.pause();
-                                    // loadingProsesGambar.style.display = 'block';
-                                    // pesan(false, '🌟 Kedipan Terdeteksi!', 'success');
-                                    // resolve(true);
+                                    // Tambahkan delay kecil sebelum efek zoom agar lebih dramatis
+                                    setTimeout(() => {
+                                        document.getElementById('scary-image').classList.add('zoom-effect');
+                                    }, 100);
                                 }, 50);
                             } else {
                                 requestAnimationFrame(processFrame);
